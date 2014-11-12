@@ -11,7 +11,7 @@
 #define BD_KEY              "W1OExkq&"
 #define BD_HEADER           "0bBH%iKU"
 #define BD_FOOTER           "5@lbJKXK"
-/*#define BD_KEY              "keyyyyyy"
+/*#define BD_KEY            "keyyyyyy"
 #define BD_HEADER           "headerrr"
 #define BD_FOOTER           "footerrr"*/
 #define BD_ENCRYPT_KEY      "tQi8kvZ$~Mi+4qxKYXpBC2d_S2kmJBA["
