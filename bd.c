@@ -39,7 +39,6 @@ int main(int argc, char **argv){
     /* Parse arguments */
     
     int is_server = 0;
-    int use_udp = 0;
     struct client_opt c_opt;
     c_opt.target_host[0] = '\0';
     c_opt.command[0] = '\0';
@@ -50,7 +49,7 @@ int main(int argc, char **argv){
     s_opt.protocol = 0;
     
     int opt;
-    while((opt = getopt(argc, argv, "hsc:d:p:u:x:")) != -1){
+    while((opt = getopt(argc, argv, "hsc:d:p:ux:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -364,7 +363,7 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
         return -1;
     }
     else{
-        printf("Sent command!\n");
+        printf("Sent TCP Packet with command!\n");
         return 0;
     }
 }
@@ -400,33 +399,23 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
     iph->ihl = 5;
     iph->version = 4;
     iph->tos = 0;
-    iph->tot_len = htons((short)(sizeof(struct iphdr) + sizeof(struct tcphdr) + data_len));
+    iph->tot_len = htons((short)(sizeof(struct iphdr) + sizeof(struct udphdr) + data_len));
     iph->id = htons(DEFAULT_IP_ID);
     iph->frag_off = 0;
     iph->ttl = DEFAULT_TTL;
-    iph->protocol = IPPROTO_TCP;
+    iph->protocol = IPPROTO_UDP;
     iph->check = 0; // Initialize to zero before calculating checksum
     iph->saddr = inet_addr(user_addr->shost);
     iph->daddr = sin.sin_addr.s_addr;
  
     iph->check = csum((unsigned short *) datagram, iph->tot_len >> 1);
  
-    /* TCP header */
+    /* UDP header */
     
-    tcph->source = htons(user_addr->sport);
-    tcph->dest = htons(user_addr->dport);
-    tcph->seq = 1487534554;
-    tcph->ack_seq = 0;
-    tcph->doff = 5; // Data Offset is set to the TCP header length 
-    tcph->fin = 0;
-    tcph->syn = 1;
-    tcph->rst = 0;
-    tcph->psh = 0;
-    tcph->ack = 0;
-    tcph->urg = 0;
-    tcph->window = htons(WIN_SIZE);
-    tcph->check = 0; // Initialize the checksum to zero (kernel's IP stack will fill in the correct checksum during transmission)
-    tcph->urg_ptr = 0;
+    udph->source = htons(user_addr->sport);
+    udph->dest = htons(user_addr->dport);
+    udph->len = htons((short)(sizeof(struct udphdr) + data_len));
+    udph->check = 0; // Initialize the checksum to zero
    
     /* Data */
     
@@ -437,12 +426,12 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
     psh.source_address = inet_addr(user_addr->shost);
     psh.dest_address = sin.sin_addr.s_addr;
     psh.placeholder = 0;
-    psh.protocol = IPPROTO_TCP;
-    psh.tcp_length = htons(sizeof(struct tcphdr) + data_len);
-    memcpy(&psh.tcp, tcph, sizeof(struct tcphdr));
+    psh.protocol = IPPROTO_UDP;
+    psh.udp_length = htons(sizeof(struct udphdr) + data_len);
+    memcpy(&psh.udp, udph, sizeof(struct udphdr));
     psh.data = data;
     
-    tcph->check = csum((unsigned short*)&psh, sizeof(pseudo_udp_header));
+    udph->check = csum((unsigned short*)&psh, sizeof(pseudo_udp_header));
  
     /* Build our own header */
     
@@ -460,7 +449,7 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
         return -1;
     }
     else{
-        printf("Sent command!\n");
+        printf("Sent UDP Packet with command!\n");
         return 0;
     }
 }

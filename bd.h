@@ -19,6 +19,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <pthread.h>
 #include <pcap.h>
@@ -42,7 +43,7 @@
 #define DEFAULT_IP_ID   12345
 
 #define DEFAULT_SRC_IP      "192.168.1.73"  // Client address. Backdoor replies 
-#define DEFAULT_SRC_PORT    54345             // will be sent to this address and port
+#define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
 
 /*
 | ------------------------------------------------------------------------------
@@ -85,7 +86,7 @@ typedef struct {
     unsigned int dest_address;
     unsigned char placeholder;
     unsigned char protocol;
-    unsigned short tcp_length;
+    unsigned short udp_length;
     struct udphdr udp;
     char *data;
 }pseudo_udp_header;
