@@ -471,9 +471,9 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
 	//printf("Jacked a packet with length of [%d]\n", header->len);
     
     // Get packet info
-    struct tcp_ip_packet packet_info;
-    if(tcp_ip_typecast(packet, &packet_info) == 0){
-        //printf("tcp_ip_typecast");
+    struct parsed_packet packet_info = {0}; // Initialize with 0
+    if(packet_typecast(packet, &packet_info) == 0){
+        printf("packet_typecast");
         return;
     }
     
@@ -510,7 +510,10 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     memset(&dst_host, 0, sizeof(struct sockaddr_in));
     dst_host.sin_family = AF_INET;
     dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
-    dst_host.sin_port = packet_info.tcp->th_sport;
+    if(packet_info.tcp->th_sport != 0)
+        dst_host.sin_port = packet_info.tcp->th_sport;
+    else(packet_info.udp->uh_sport != 0)
+        dst_host.sin_port = packet_info.udp->uh_sport;
     
     // Send results from popen command
     char output[BD_MAX_REPLY_LEN];

@@ -63,21 +63,30 @@ struct sniff_tcp {
     u_short th_urp;         /* urgent pointer */
 };
 
+struct sniff_udp {
+    u_short    uh_sport;    /* source port */
+    u_short    uh_dport;    /* destination port */
+    u_short    uh_ulen;     /* datagram length */
+    u_short    uh_sum;      /* datagram checksum */
+};
+
 /* Structure to hold all the parsed headers */
 
-struct tcp_ip_packet{
+struct parsed_packet{
     const struct sniff_ethernet *ethernet;
     const struct sniff_ip *ip;
     const struct sniff_tcp *tcp;
+    const struct sniff_udp *udp;
     const u_char *payload;
 };
 
 /* Typecast the packet into multiple header structures */
 
-int tcp_ip_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
+int packet_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
 
     u_int size_ip;
     u_int size_tcp;
+    u_int size_udp = 8; // UDP Packet size
     
     // Ethernet
     packet_info->ethernet = (struct sniff_ethernet *)(packet);
@@ -90,14 +99,30 @@ int tcp_ip_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
         return 0;
     }
     
-    // TCP
-    packet_info->tcp = (struct sniff_tcp *)(packet + SIZE_ETHERNET + size_ip);
-    size_tcp = TH_OFF(packet_info->tcp)*4;
-    if(size_tcp < 20){
-        printf("Invalid TCP header length: %u bytes\n",size_tcp);
+    if(packet_info->ip.ip_p == IPPROTO_UDP){
+        
+        // UDP
+        packet_info->udp = (struct sniff_udp *)(packet + SIZE_ETHERNET + size_ip);
+        packet_info->payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_udp);
+
+        return 1;
+    }
+    else if(packet_info->ip.ip_p == IPPROTO_TCP){
+        
+        // TCP
+        packet_info->tcp = (struct sniff_tcp *)(packet + SIZE_ETHERNET + size_ip);
+        size_tcp = TH_OFF(packet_info->tcp)*4;
+        if(size_tcp < 20){
+            printf("Invalid TCP header length: %u bytes\n",size_tcp);
+            return 0;
+        }
+        packet_info->payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
+
+        return 1;
+    }
+    else{
+        printf("Invalid transport protocol\n");
         return 0;
     }
-    packet_info->payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
     
-    return 1;
 }
