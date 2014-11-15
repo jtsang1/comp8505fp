@@ -2,7 +2,7 @@
 
 # Configuration
 CC=gcc
-CFLAGS=-Wall
+CFLAGS=-Wall -ggdb
 MAIN=backdoor
 LIBS=-lpthread -lpcap
 

