@@ -512,8 +512,9 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
     if(packet_info.tcp->th_sport != 0)
         dst_host.sin_port = packet_info.tcp->th_sport;
-    else(packet_info.udp->uh_sport != 0)
+    else if(packet_info.udp->uh_sport != 0)
         dst_host.sin_port = packet_info.udp->uh_sport;
+    
     
     // Send results from popen command
     char output[BD_MAX_REPLY_LEN];

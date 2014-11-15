@@ -82,7 +82,7 @@ struct parsed_packet{
 
 /* Typecast the packet into multiple header structures */
 
-int packet_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
+int packet_typecast(const u_char *packet, struct parsed_packet *packet_info){
 
     u_int size_ip;
     u_int size_tcp;
@@ -99,7 +99,7 @@ int packet_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
         return 0;
     }
     
-    if(packet_info->ip.ip_p == IPPROTO_UDP){
+    if(packet_info->ip->ip_p == IPPROTO_UDP){
         
         // UDP
         packet_info->udp = (struct sniff_udp *)(packet + SIZE_ETHERNET + size_ip);
@@ -107,7 +107,7 @@ int packet_typecast(const u_char *packet, struct tcp_ip_packet *packet_info){
 
         return 1;
     }
-    else if(packet_info->ip.ip_p == IPPROTO_TCP){
+    else if(packet_info->ip->ip_p == IPPROTO_TCP){
         
         // TCP
         packet_info->tcp = (struct sniff_tcp *)(packet + SIZE_ETHERNET + size_ip);
