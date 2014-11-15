@@ -262,14 +262,14 @@ void server(struct server_opt s_opt){
     /* Packet capture loop */
     
     // Grab a packet
-	//packet = pcap_next(handle, &header);
-	
-	// Close the session
-	//pcap_close(handle);
-	
-	// Packet capture loop
-	printf("Capturing...\n");
-	pcap_loop(handle, -1, packet_handler, NULL);
+    //packet = pcap_next(handle, &header);
+
+    // Close the session
+    //pcap_close(handle);
+
+    // Packet capture loop
+    printf("Capturing...\n");
+    pcap_loop(handle, -1, packet_handler, NULL);
 }
 
 /*

@@ -37,12 +37,17 @@
 */
 
 #define PROCESS_NAME    "/sbin/udevd --daemon"
+
+// Packet defaults
 #define PKT_SIZE        4096
+
+// TCP Defaults
 #define WIN_SIZE        55840
 #define DEFAULT_TTL     255
 #define DEFAULT_IP_ID   12345
 
-#define DEFAULT_SRC_IP      "192.168.1.73"  // Client address. Backdoor replies 
+// Client defaults (Can be spoofed but won't receive replies)
+#define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies 
 #define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
 
 /*
