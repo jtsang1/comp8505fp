@@ -47,7 +47,7 @@
 #define DEFAULT_IP_ID   12345
 
 // Client defaults (Can be spoofed but won't receive replies)
-#define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies 
+#define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies
 #define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
 
 /*
