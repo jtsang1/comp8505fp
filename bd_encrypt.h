@@ -101,6 +101,8 @@ char *bd_decrypt(char *payload, int payload_len){
     char message[BD_MAX_REPLY_LEN];
     memset(message, 0, BD_MAX_REPLY_LEN);
     memcpy(message, payload + BD_KEY_LEN, message_len);
+    printf("payload: %s\n", payload);
+    printf("payload_len: %d\n", payload_len);
     printf("Message: %s\n", message);
     
     /* Decrypt message */
