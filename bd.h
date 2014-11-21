@@ -27,6 +27,9 @@
 #include <netinet/in.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include "packet_headers.h"
 #include "bd_encrypt.h"
 
