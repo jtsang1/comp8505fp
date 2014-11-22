@@ -579,12 +579,9 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     server_addr.raw_socket = skt;
     
     char test[] = "nexus";
-    
-    send_udp_datagram(&server_addr, test, sizeof(test));
-    //send_tcp_datagram(&server_addr, test, sizeof(text));
             
     // Send packet
-     if(s_opt_ptr->protocol == 1)
+    if(s_opt_ptr->protocol == 1)
         send_udp_datagram(&server_addr, test, sizeof(test));
     else
         send_tcp_datagram(&server_addr, test, sizeof(test));
@@ -609,10 +606,6 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     free(bd_command);
     close(sockfd);
     pclose(fp);*/
-    
-    
-    
-    
 }
 
 /*
