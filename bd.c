@@ -569,14 +569,16 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     dst_host.sin_addr.s_addr = packet_info.ip->ip_src.s_addr;
     dst_host.sin_port = dport;
     
-    printf("IP address: %s\n",inet_ntoa(hostaddr->sin_addr));
-    
     /* Prepare address info structure for raw packet crafting */
     
     struct addr_info server_addr;
-    server_addr.shost = inet_ntoa(hostaddr->sin_addr);
+    char shost[17];
+    char dhost[17];
+    inet_ntop(AF_INET, &(hostaddr->sin_addr), shost, sizeof(shost));
+    inet_ntop(AF_INET, &(packet_info.ip->ip_src), dhost, sizeof(dhost));
+    server_addr.shost = shost;
     server_addr.sport = sport;
-    server_addr.dhost = inet_ntoa(packet_info.ip->ip_src);
+    server_addr.dhost = dhost;
     server_addr.dport = dport;
     server_addr.raw_socket = skt;
     
