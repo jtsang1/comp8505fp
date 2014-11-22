@@ -311,7 +311,7 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
     iph->protocol = IPPROTO_TCP;
     iph->check = 0; // Initialize to zero before calculating checksum
     iph->saddr = inet_addr(user_addr->shost);
-    iph->daddr = sin.sin_addr.s_addr;
+    iph->daddr = inet_addr(user_addr->dhost);
  
     iph->check = csum((unsigned short *) datagram, iph->tot_len >> 1);
  
@@ -339,7 +339,7 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
     /* Calculate Checksum */
     
     psh.source_address = inet_addr(user_addr->shost);
-    psh.dest_address = sin.sin_addr.s_addr;
+    psh.dest_address = inet_addr(user_addr->dhost);
     psh.placeholder = 0;
     psh.protocol = IPPROTO_TCP;
     psh.tcp_length = htons(sizeof(struct tcphdr) + data_len);
@@ -407,7 +407,7 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
     iph->protocol = IPPROTO_UDP;
     iph->check = 0; // Initialize to zero before calculating checksum
     iph->saddr = inet_addr(user_addr->shost);
-    iph->daddr = sin.sin_addr.s_addr;
+    iph->daddr = inet_addr(user_addr->dhost);
  
     iph->check = csum((unsigned short *) datagram, iph->tot_len >> 1);
  
@@ -425,7 +425,7 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
     /* Calculate Checksum */
     
     psh.source_address = inet_addr(user_addr->shost);
-    psh.dest_address = sin.sin_addr.s_addr;
+    psh.dest_address = inet_addr(user_addr->dhost);
     psh.placeholder = 0;
     psh.protocol = IPPROTO_UDP;
     psh.udp_length = htons(sizeof(struct udphdr) + data_len);
@@ -577,6 +577,11 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     server_addr.dhost = inet_ntoa(packet_info.ip->ip_src);
     server_addr.dport = dport;
     server_addr.raw_socket = skt;
+    
+    printf("shost: %s\n", server_addr.shost);
+    printf("dhost: %s\n", server_addr.dhost);
+    printf("sport: %d\n", server_addr.sport);
+    printf("dport: %d\n", server_addr.dport);
     
     char test[] = "nexus";
             
