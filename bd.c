@@ -541,8 +541,9 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     
     /* Covert Channel */
     
-    printf("\nID: %c\n", packet_info.ip->ip_id);
-    memcpy(msg_buf_ptr->buffer, &(packet_info.ip->ip_id), 1);
+    printf("\nID: %d\n", packet_info.ip->ip_id);
+    memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &(packet_info.ip->ip_id), 2);
+    
     printf("Buffer: %s\n", msg_buf_ptr->buffer);
     msg_buf_ptr->position = msg_buf_ptr->position + 2;
     
