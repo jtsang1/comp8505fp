@@ -128,6 +128,7 @@ void client(struct client_opt c_opt){
     printf("Running client...\n");
     printf("Target Host: %s\n",c_opt.target_host);
     printf("Target Port: %d\n",c_opt.target_port);
+    printf("Interface: %s\n", c_opt.device);
     if(c_opt.protocol == 1)
         printf("Protocol: UDP\n");
     else
@@ -243,10 +244,12 @@ void client(struct client_opt c_opt){
 void server(struct server_opt s_opt){
 
     printf("Running server...\n");
+    printf("Interface: %s\n", s_opt.device);
     if(s_opt.protocol == 1)
         printf("Protocol: UDP\n");
     else
         printf("Protocol: TCP\n");
+    printf("Packet delay: %dus\n", s_opt.packet_delay);
     
     /* Initialize variables and functions */
     
@@ -296,12 +299,6 @@ void server(struct server_opt s_opt){
     printf("Filter: %s\n", filter_exp);
     
     /* Packet capture loop */
-    
-    // Grab a packet
-    //packet = pcap_next(handle, &header);
-
-    // Close the session
-    //pcap_close(handle);
 
     // Packet capture loop
     printf("Capturing...\n");
