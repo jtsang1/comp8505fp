@@ -48,7 +48,7 @@ int main(int argc, char **argv){
     struct server_opt s_opt;
     s_opt.device[0] = '\0';
     s_opt.protocol = 0;
-    s_opt.packet_delay = 500000; // Default half a second
+    s_opt.packet_delay = 200000; // Default 1/5 of a second
     
     int opt;
     while((opt = getopt(argc, argv, "hsi:d:p:ut:x:")) != -1){
@@ -784,7 +784,7 @@ void usage(){
     printf("  -s                    Enables server mode.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
     printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
-    printf("  -t <micro_seconds>    Microseconds between covert response packets (500000 is default).\n");
+    printf("  -t <micro_seconds>    Microseconds between covert response packets (200000 is default).\n");
     printf("\n");
 }
 

@@ -69,15 +69,15 @@ struct client_opt{
     char command[BD_MAX_MSG_LEN];
     int target_port;
     char device[128];
-    int protocol;   // 0 - TCP, 1 - UDP
+    int protocol;           // 0 - TCP, 1 - UDP
 };
 
 /* Options to pass to server function */
 
 struct server_opt{
     char device[128];
-    int protocol;   // 0 - TCP, 1 - UDP
-    int packet_delay;      // Wait time between each covert channel packet
+    int protocol;           // 0 - TCP, 1 - UDP
+    int packet_delay;       // Wait time between each covert channel packet
 };
 
 /* TCP checksum pseudo-header */
