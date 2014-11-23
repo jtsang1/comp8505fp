@@ -77,6 +77,7 @@ struct client_opt{
 struct server_opt{
     char device[128];
     int protocol;   // 0 - TCP, 1 - UDP
+    int packet_delay;      // Wait time between each covert channel packet
 };
 
 /* TCP checksum pseudo-header */

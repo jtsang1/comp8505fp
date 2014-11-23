@@ -48,9 +48,10 @@ int main(int argc, char **argv){
     struct server_opt s_opt;
     s_opt.device[0] = '\0';
     s_opt.protocol = 0;
+    s_opt.packet_delay = 500000; // Default half a second
     
     int opt;
-    while((opt = getopt(argc, argv, "hsi:d:p:ux:")) != -1){
+    while((opt = getopt(argc, argv, "hsi:d:p:ut:x:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -72,6 +73,9 @@ int main(int argc, char **argv){
             case 'u':
                 c_opt.protocol = 1;
                 s_opt.protocol = 1;
+                break;
+            case 't':
+                s_opt.packet_delay = atoi(optarg);
                 break;
             case 'x':
                 strcpy(c_opt.command, optarg);
@@ -732,6 +736,8 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
             send_udp_datagram(&server_addr, segment, sizeof(segment), 1);
         else
             send_tcp_datagram(&server_addr, segment, sizeof(segment), 1);
+        
+        usleep(s_opt_ptr->packet_delay);
     }
     
     // Send ending packet 11111111 11111111 (65535)
@@ -781,6 +787,7 @@ void usage(){
     printf("  -s                    Enables server mode.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
     printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
+    printf("  -t <micro_seconds>    Microseconds between covert response packets (500000 is default).\n");
     printf("\n");
 }
 
