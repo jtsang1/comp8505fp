@@ -118,6 +118,15 @@ struct message_buffer {
     char buffer[MESSAGE_MAX_SIZE];
 };
 
+/* Data comes in 2 bytes at a time for the covert channel */
+
+union Segment {
+    uint16_t s;
+    struct Byte{
+        uint8_t c1, c2;
+    }byte; 
+};
+
 void client(struct client_opt c_opt);
 void server(struct server_opt s_opt);
 int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len, int mode); // When mode is 0, send as normal payload

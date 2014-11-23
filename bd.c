@@ -540,18 +540,28 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     }
     
     /* Covert Channel */
-    u_short ip_id = ntohs(packet_info.ip->ip_id);
-    printf("\nID: %d\n", packet_info.ip->ip_id);
-    memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &ip_id, 2);
+    union Segment seg;
+    seg.s = ntohs(packet_info.ip->ip_id);
+    printf("\nID: %d\n", seg.s);
     
-    printf("Buffer: %s\n", msg_buf_ptr->buffer);
-    msg_buf_ptr->position = msg_buf_ptr->position + 2;
-    
-    // If message is 11111111 11111111 or buffer is full, break;
-    if(packet_info.ip->ip_id == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
+    // End transmission if got "fin" packet or buffer is full
+    if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
         printf("pcap_breakloop\n");
         pcap_breakloop(client_handle);
+        return;
     }
+    // Skip 2nd byte if its 11111111 (because we are sending data 2 bytes at a time)
+    else if(seg.byte.c2 == 255){
+        memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.byte.c1, 1);
+        msg_buf_ptr->position++;
+    }
+    // Both are data bytes
+    else{
+        memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.s, 2);
+        msg_buf_ptr->position = msg_buf_ptr->position + 2;
+    }
+    
+    printf("Buffer: %s\n", msg_buf_ptr->buffer);    
 }
 
 /*
