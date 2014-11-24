@@ -48,7 +48,7 @@ int main(int argc, char **argv){
     struct server_opt s_opt;
     s_opt.device[0] = '\0';
     s_opt.protocol = 0;
-    s_opt.packet_delay = 200000; // Default 1/5 of a second
+    s_opt.packet_delay = 200000; // Default 1/50 of a second
     
     int opt;
     while((opt = getopt(argc, argv, "hsi:d:p:ut:x:")) != -1){
@@ -232,7 +232,7 @@ void client(struct client_opt c_opt){
     printf("Capturing...\n");
     pcap_loop(client_handle, -1, client_packet_handler, (u_char *)&msg_buf);
     
-    printf("Data Received: %s\n", msg_buf.buffer);
+    printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
 }
 
 /*
@@ -562,7 +562,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         msg_buf_ptr->position = msg_buf_ptr->position + 2;
     }
     
-    printf("Buffer: %s\n", msg_buf_ptr->buffer);
+    printf("Buffer: %zu bytes\n%s\n", strlen(msg_buf_ptr->buffer), msg_buf_ptr->buffer);
 }
 
 /*

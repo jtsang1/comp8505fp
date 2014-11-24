@@ -54,7 +54,7 @@
 #define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
 
 // Response
-#define MESSAGE_MAX_SIZE   4096
+#define MESSAGE_MAX_SIZE   512
 
 /*
 | ------------------------------------------------------------------------------
