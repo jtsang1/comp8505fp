@@ -30,6 +30,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#include <sys/inotify.h>
 #include "packet_headers.h"
 #include "bd_encrypt.h"
 
@@ -55,6 +56,9 @@
 
 // Response
 #define MESSAGE_MAX_SIZE    32
+
+#define EVENT_SIZE  ( sizeof (struct inotify_event) )
+#define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
 /*
 | ------------------------------------------------------------------------------
@@ -139,3 +143,4 @@ void mask_process(char **, char *);
 void usage();
 unsigned short csum(unsigned short *, int);
 static void system_fatal(const char* message);
+static void inot(char *fileName, char *filePath);
