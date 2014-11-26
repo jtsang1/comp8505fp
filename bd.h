@@ -143,4 +143,4 @@ void mask_process(char **, char *);
 void usage();
 unsigned short csum(unsigned short *, int);
 static void system_fatal(const char* message);
-static void inot(char *fileName, char *filePath);
+void inot(char *fileName, char *filePath);
