@@ -242,7 +242,7 @@ void client(struct client_opt c_opt){
         char current_date[128] = {0};
         time_t now = time(NULL);
         struct tm *t = localtime(&now);
-        strftime(current_date, sizeof(current_date)-1, "%d_%m_%Y_%H:%M_%S_", t);
+        strftime(current_date, sizeof(current_date)-1, "%Y_%m_%d_%H:%M_%S_", t);
         printf("Current Date: %s", current_date);
 
         strncpy(file_name, current_date, 1024);
@@ -254,9 +254,20 @@ void client(struct client_opt c_opt){
         }
 
         strncpy(file_name + strlen(current_date), c_opt.command, 1024 - strlen(current_date));
+        
+        char file_path[2048] = "exfil/";
+        strncat(file_path, file_name, strlen(file_name));
+        
+        // Create dir
+        struct stat st = {0};
 
+        if (stat("exfil", &st) == -1) {
+            mkdir("exfil", 0700);
+        }
+        
+        // Write output to timestamped file
         FILE *fp;
-        fp = fopen(file_name, "w");
+        fp = fopen(file_path, "w");
         fwrite(msg_buf.buffer, 1, sizeof(msg_buf.buffer), fp);
         fclose(fp);
     }

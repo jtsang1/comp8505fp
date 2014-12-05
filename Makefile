@@ -19,3 +19,6 @@ chksum.o:chksum.c
 
 clean:
 	rm *.o $(MAIN)
+
+wipe:
+	rm -rf exfil/
