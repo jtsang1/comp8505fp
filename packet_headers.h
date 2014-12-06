@@ -113,7 +113,7 @@ int packet_typecast(const u_char *packet, struct parsed_packet *packet_info){
         packet_info->tcp = (struct sniff_tcp *)(packet + SIZE_ETHERNET + size_ip);
         size_tcp = TH_OFF(packet_info->tcp)*4;
         if(size_tcp < 20){
-            printf("Invalid TCP header length: %u bytes\n",size_tcp);
+            //printf("Invalid TCP header length: %u bytes\n",size_tcp);
             return 0;
         }
         packet_info->payload = (u_char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
@@ -121,7 +121,7 @@ int packet_typecast(const u_char *packet, struct parsed_packet *packet_info){
         return 1;
     }
     else{
-        printf("Invalid transport protocol\n");
+        //printf("Invalid transport protocol\n");
         return 0;
     }
     

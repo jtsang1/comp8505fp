@@ -467,7 +467,7 @@ int send_tcp_datagram(struct addr_info *user_addr, char *data, int data_len, int
         return -1;
     }
     else{
-        printf("Sent TCP Packet with command!\n");
+        printf("Sent TCP Packet!\n");
         return 0;
     }
 }
@@ -569,7 +569,7 @@ int send_udp_datagram(struct addr_info *user_addr, char *data, int data_len, int
         return -1;
     }
     else{
-        printf("Sent UDP Packet with command!\n");
+        printf("Sent UDP Packet!\n");
         return 0;
     }
 }
@@ -603,6 +603,8 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     // End transmission if got "fin" packet or buffer is full
     if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE - 1){
         //printf("pcap_breakloop\n");
+        msg_buf_ptr->buffer[msg_buf_ptr->position] = '\0';
+        msg_buf_ptr->position++;
         pcap_breakloop(client_handle);
         return;
     }
