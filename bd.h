@@ -46,7 +46,7 @@
 // Packet Size
 #define PKT_SIZE            4096
 // Response Size
-#define MESSAGE_MAX_SIZE    32
+#define MESSAGE_MAX_SIZE    40
 
 // TCP Defaults
 #define WIN_SIZE            55840
