@@ -238,7 +238,7 @@ void client(struct client_opt c_opt){
     /* Packet capture loop */
 
     // Packet capture loop
-    struct message_buffer msg_buf;
+    struct message_buffer msg_buf = {0};
     msg_buf.position = 0;
     memset(msg_buf.buffer, 0, sizeof(msg_buf.buffer));
 
@@ -634,8 +634,8 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     struct server_opt *s_opt_ptr = (struct server_opt *)args;
 
     //printf("\n");
-    printf("%c",'.');
-    fflush(stdout);
+    //printf("%c",'.');
+    //fflush(stdout);
     /* Parse packet */
 
     // Get packet info
