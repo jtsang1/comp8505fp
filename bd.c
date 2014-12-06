@@ -634,7 +634,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     struct server_opt *s_opt_ptr = (struct server_opt *)args;
 
     //printf("\n");
-    printf("-");
+    printf("%c",'.');
 
     /* Parse packet */
 
