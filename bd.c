@@ -605,16 +605,19 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         //printf("pcap_breakloop\n");
         pcap_breakloop(client_handle);
         return;
+        printf("Buffer1: %zu bytes\n", strlen(msg_buf_ptr->buffer));
     }
     // Skip 2nd byte if its 11111111 (because we are sending data 2 bytes at a time)
     else if(seg.byte.c2 == 255){
         memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.byte.c1, 1);
         msg_buf_ptr->position++;
+        printf("Buffer2: %zu bytes\n", strlen(msg_buf_ptr->buffer));
     }
     // Both are data bytes
     else{
         memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.s, 2);
         msg_buf_ptr->position = msg_buf_ptr->position + 2;
+        printf("Buffer3: %zu bytes\n", strlen(msg_buf_ptr->buffer));
     }
 
     printf("Buffer: %zu bytes\n%s\n", strlen(msg_buf_ptr->buffer), msg_buf_ptr->buffer);
@@ -630,8 +633,8 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     struct server_opt *s_opt_ptr = (struct server_opt *)args;
 
-    printf("\n");
-    printf("Got packet...\n");
+    //printf("\n");
+    printf(".");
 
     /* Parse packet */
 
