@@ -635,7 +635,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     //printf("\n");
     printf("%c",'.');
-
+    fflush(stdout);
     /* Parse packet */
 
     // Get packet info
