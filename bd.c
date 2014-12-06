@@ -247,8 +247,7 @@ void client(struct client_opt c_opt){
 
     /* Transmitted data */
 
-    printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
-    printf("Total Buffer2: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
+    printf("Total Buffer: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
 
     if(strncmp(c_opt.command,"WATCH:",6) == 0){
         char file_name[1024] = {0};
@@ -286,8 +285,7 @@ void client(struct client_opt c_opt){
         fclose(fp);
     }
     else{
-        printf("Total Bufferz: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
-        printf("Total Buffer2z: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
+        printf("Total Buffer: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
     }
 }
 
@@ -699,8 +697,9 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
             fread((void *)output, sizeof(char), MESSAGE_MAX_SIZE, fp);
 
             printf("File content: \n%s\n", output);
+            fclose(fp);
         };
-        fclose(fp);
+        
     }
     else{ // Normal command
 
