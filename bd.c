@@ -248,6 +248,7 @@ void client(struct client_opt c_opt){
     /* Transmitted data */
 
     printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
+    printf("Total Buffer2: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
 
     if(strncmp(c_opt.command,"WATCH:",6) == 0){
         char file_name[1024] = {0};
@@ -285,7 +286,8 @@ void client(struct client_opt c_opt){
         fclose(fp);
     }
     else{
-        printf("Total Buffer: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
+        printf("Total Bufferz: %zu bytes\n%s\n", strlen(msg_buf.buffer), msg_buf.buffer);
+        printf("Total Buffer2z: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
     }
 }
 
@@ -601,10 +603,8 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     printf("\nID: %d\n", seg.s);
 
     // End transmission if got "fin" packet or buffer is full
-    if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE - 1){
+    if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
         //printf("pcap_breakloop\n");
-        msg_buf_ptr->buffer[msg_buf_ptr->position] = '\0';
-        msg_buf_ptr->position++;
         pcap_breakloop(client_handle);
         return;
     }
@@ -615,11 +615,18 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     }
     // Both are data bytes
     else{
-        memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.s, 2);
-        msg_buf_ptr->position = msg_buf_ptr->position + 2;
+        // If only room for 1 more byte
+        if(msg_buf_ptr->position == MESSAGE_MAX_SIZE - 1){
+            memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.s, 1);
+            msg_buf_ptr->position++;
+        }
+        else{
+            memcpy(msg_buf_ptr->buffer + msg_buf_ptr->position, &seg.s, 2);
+            msg_buf_ptr->position = msg_buf_ptr->position + 2;
+        }
     }
 
-    printf("Buffer: %zu bytes\n%s\n", strlen(msg_buf_ptr->buffer), msg_buf_ptr->buffer);
+    printf("Buffer: %d bytes\n%.*s\n", msg_buf_ptr->position, msg_buf_ptr->position, msg_buf_ptr->buffer);
 }
 
 /*
