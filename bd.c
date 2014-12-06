@@ -638,7 +638,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
     // Get packet info
     struct parsed_packet packet_info = {0}; // Initialize with 0
     if(packet_typecast(packet, &packet_info) == 0){
-        printf("packet_typecast");
+        //printf("packet_typecast");
         return;
     }
 

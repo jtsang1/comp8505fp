@@ -95,7 +95,7 @@ int packet_typecast(const u_char *packet, struct parsed_packet *packet_info){
     packet_info->ip = (struct sniff_ip *)(packet + SIZE_ETHERNET);
     size_ip = IP_HL(packet_info->ip)*4;
     if(size_ip < 20){
-        printf("Invalid IP header length: %u bytes\n", size_ip);
+        //printf("Invalid IP header length: %u bytes\n", size_ip);
         return 0;
     }
     
