@@ -306,7 +306,7 @@ void client(struct client_opt c_opt){
         // Write output to timestamped file
         FILE *fp;
         fp = fopen(file_path, "w");
-        fwrite(msg_buf.buffer, 1, sizeof(msg_buf.buffer), fp);
+        fwrite(msg_buf.buffer, 1, msg_buf.position, fp);
         fclose(fp);
         printf("Output written to file: %s\n", file_path);
     }
