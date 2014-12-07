@@ -281,7 +281,7 @@ void client(struct client_opt c_opt){
         time_t now = time(NULL);
         struct tm *t = localtime(&now);
         strftime(current_date, sizeof(current_date)-1, "%Y_%m_%d_%H:%M_%S_", t);
-        printf("Current Date: %s", current_date);
+        //printf("Current Date: %s", current_date);
 
         strncpy(file_name, current_date, 1024);
 
