@@ -364,7 +364,7 @@ void server(struct server_opt s_opt){
     }
 
     /* Build packet filter */
-    /*
+    /* No filter necessary...
     // Compile filter
     if(pcap_compile(handle, &fp, filter_exp, 0, net) == -1){
         fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
@@ -821,7 +821,8 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     // Wait half a second for client to open pcap session...
     usleep(500000);
-    //char test[] = "nexus";
+
+    printf("--------------------\nStart covert transmission via IP ID header field...\n");
 
     // 2 bytes at a time
     size_t output_len = strlen(output);
@@ -857,6 +858,8 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         send_udp_datagram(&server_addr, segment, sizeof(segment), 1);
     else
         send_tcp_datagram(&server_addr, segment, sizeof(segment), 1);
+        
+    printf("End covert transmission\n--------------------\n");
 
 }
 /*
