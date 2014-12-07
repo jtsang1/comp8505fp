@@ -628,7 +628,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     // End transmission if got "fin" packet or buffer is full
     if(seg.s == 65535 || msg_buf_ptr->position >= MESSAGE_MAX_SIZE){
-        //printf("pcap_breakloop\n");
+        printf("End covert transmission\n");
         pcap_breakloop(client_handle);
         return;
     }
