@@ -194,7 +194,7 @@ void client(struct client_opt c_opt){
     char *dev;                      /* The device to sniff on */
     char errbuf[PCAP_ERRBUF_SIZE];  /* Error string */
     struct bpf_program fp;          /* The compiled filter */
-    char filter_exp[] = BD_FILTER; /* The filter expression */
+    char filter_exp[1024] = {0};    /* The filter expression */
     bpf_u_int32 mask;               /* Our netmask */
     bpf_u_int32 net;                /* Our IP */
 
@@ -220,8 +220,34 @@ void client(struct client_opt c_opt){
         system_fatal("pcap_open_live");
     }
 
-    /* Build packet filter */
-
+    /* Build packet filter with reversed hosts and ports*/
+    
+    char port_string[16] = {0};
+    
+    strcat(filter_exp, "src host ");
+    strcat(filter_exp, c_opt.target_host);
+    
+    sprintf(port_string, "%d", c_opt.target_port);
+    strcat(filter_exp, "and src port ");
+    strcat(filter_exp, port_string);
+    
+    strcat(filter_exp, "and dst host ");
+    strcat(filter_exp, c_opt.source_host);
+    
+    sprintf(port_string, "%d", c_opt.source_port);
+    strcat(filter_exp, "and dst port ");
+    strcat(filter_exp, port_string);
+    strcat(filter_exp, "and ");
+    
+    char protocol_name[16] = {0};
+    if(c_opt.protocol == 1)
+        strcpy(protocol_name, "udp");
+    else
+        strcpy(protocol_name, "tcp");
+    strcat(filter_exp, protocol_name);
+    
+    printf("Client Filter: %s\n", filter_exp);
+    
     // Compile filter
     if(pcap_compile(client_handle, &fp, filter_exp, 0, net) == -1){
         fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(client_handle));
@@ -691,7 +717,7 @@ void server_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
         
         FILE *fp;
         if((fp = fopen(file_path, "r")) == NULL){
-            strcpy(output, "File not found...");
+            strcpy(output, "File not found or deleted");
         }
         else{
             fread((void *)output, sizeof(char), MESSAGE_MAX_SIZE, fp);

